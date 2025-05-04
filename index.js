@@ -2,7 +2,7 @@ const { test, expect, devices, defineConfig: originalDefineConfig } = require('@
 const path = require('path');
 
 const defineConfig = (config, ...configs) => {
-  return originalDefineConfig({
+  const c = originalDefineConfig({
     ...config,
     '@playwright/test': {
       packageJSON: require.resolve('./package.json'),
@@ -15,6 +15,10 @@ const defineConfig = (config, ...configs) => {
       },
     },
   }, ...configs);
+
+  c['@playwright/test'].babelPlugins = [[require.resolve('./transform')]];
+
+  return c;
 };
 
 module.exports = { test, expect, devices, defineConfig };

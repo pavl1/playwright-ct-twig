@@ -1,22 +1,33 @@
-import path from 'path';
-// @ts-ignore
-import {declare, traverse, types} from 'playwright/lib/transform/babelBundle';
-// @ts-ignore
-import {setTransformData} from 'playwright/lib/transform/transform';
+const path = require('path');
+const {declare, traverse, types} = require('playwright/lib/transform/babelBundle');
+const {setTransformData} = require('playwright/lib/transform/transform');
 
-import type {BabelAPI} from 'babel__helper-plugin-utils';
-import type {PluginObj, types as T} from 'babel__core';
+/** @type {typeof import('@babel/core').types} */
+const t = types;
 
-const t: typeof T = types;
+/**
+ * @typedef {object} ImportInfo
+ * @param {string} id
+ * @param {string} filename
+ * @param {string} importSource
+ * @param {string | undefined} remoteName
+ */
 
-let jsxComponentNames: Set<string>;
-let classComponentNames: Set<string>;
-let importInfos: Map<string, ImportInfo>;
+/** @type {Set<string>} */
+let jsxComponentNames;
+/** @type {Set<string>} */
+let classComponentNames;
+/** @type {Map<string, ImportInfo>} */
+let importInfos;
 
-export default declare((api: BabelAPI) => {
+/**
+ * @param {import('@types/babel__helper-plugin-utils').BabelAPI} api
+ * @return {import('@babel/core').PluginObj}
+ */
+export default declare((api) => {
     api.assertVersion(7);
 
-    const result: PluginObj = {
+    return {
         name: 'playwright-debug-transform',
         visitor: {
             Program: {
@@ -26,8 +37,8 @@ export default declare((api: BabelAPI) => {
                     importInfos = new Map();
                 },
                 exit(path) {
-                    let firstDeclaration: any;
-                    let lastImportDeclaration: any;
+                    let firstDeclaration;
+                    let lastImportDeclaration;
                     path.get('body').forEach(p => {
                         if (p.isImportDeclaration())
                             lastImportDeclaration = p;
@@ -70,7 +81,7 @@ export default declare((api: BabelAPI) => {
                     for (const specifier of importNode.specifiers) {
                         if (t.isImportNamespaceSpecifier(specifier))
                             continue;
-                        const {localName, info} = importInfo(importNode, specifier, this.filename!);
+                        const {localName, info} = importInfo(importNode, specifier, this.filename);
                         importInfos.set(localName, info);
                     }
                     p.skip();
@@ -83,7 +94,7 @@ export default declare((api: BabelAPI) => {
                 for (const specifier of importNode.specifiers) {
                     if (t.isImportNamespaceSpecifier(specifier))
                         continue;
-                    const {localName, info} = importInfo(importNode, specifier, this.filename!);
+                    const {localName, info} = importInfo(importNode, specifier, this.filename);
                     if (jsxComponentNames.has(localName) || classComponentNames.has(localName)) {
                         importInfos.set(localName, info);
                         ++importCount;
@@ -110,13 +121,16 @@ export default declare((api: BabelAPI) => {
             },
         }
     };
-    return result;
 });
 
-function collectJsxComponentUsages(node: T.Node): Set<string> {
-    const names = new Set<string>();
+/**
+ * @param {import('@babel/core').types.Node} node
+ * @return {Set<string>}
+ */
+function collectJsxComponentUsages(node) {
+    /** @type {Set<string>} */
+    const names = new Set();
     traverse(node, {
-        // @ts-ignore
         enter: p => {
             // Treat JSX-everything as component usages.
             if (t.isJSXElement(p.node)) {
@@ -130,14 +144,17 @@ function collectJsxComponentUsages(node: T.Node): Set<string> {
     return names;
 }
 
-function collectClassMountUsages(node: T.Node): Set<string> {
-    const names = new Set<string>();
+/**
+ * @param {import('@babel/core').types.Node} node
+ * @return {Set<string>}
+ */
+function collectClassMountUsages(node) {
+    /** @type {Set<string>} */
+    const names = new Set();
     traverse(node, {
-        // @ts-ignore
         enter: p => {
             if (t.isCallExpression(p.node) && t.isIdentifier(p.node.callee) && p.node.callee.name === 'mount') {
                 p.traverse({
-                    // @ts-ignore
                     Identifier: p => {
                         names.add(p.node.name);
                     }
@@ -148,21 +165,19 @@ function collectClassMountUsages(node: T.Node): Set<string> {
     return names;
 }
 
-export type ImportInfo = {
-    id: string;
-    filename: string;
-    importSource: string;
-    remoteName: string | undefined;
-};
 
-export function importInfo(importNode: T.ImportDeclaration, specifier: T.ImportSpecifier | T.ImportDefaultSpecifier, filename: string): {
-    localName: string,
-    info: ImportInfo
-} {
+/**
+ *
+ * @param {import('@babel/core').types.ImportDeclaration} importNode
+ * @param {import('@babel/core').types.ImportSpecifier | import('@babel/core').types.ImportDefaultSpecifier} specifier
+ * @param {string} filename
+ * @return {{localName, info: ImportInfo}}
+ */
+export function importInfo(importNode, specifier, filename) {
     const importSource = importNode.source.value;
     const idPrefix = path.join(filename, '..', importSource).replace(/[^\w_\d]/g, '_');
 
-    const result: ImportInfo = {
+    const result = {
         id: idPrefix,
         filename,
         importSource,
@@ -178,6 +193,7 @@ export function importInfo(importNode: T.ImportDeclaration, specifier: T.ImportS
 
     if (result.remoteName)
         result.id += '_' + result.remoteName;
+
     return {localName: specifier.local.name, info: result};
 }
 
@@ -201,7 +217,8 @@ const artifactExtensions = new Set([
     '.css',
 
     // Fonts
-    '.woff', '.woff2',
+    '.woff',
+    '.woff2',
     '.ttf',
     '.otf',
     '.eot',

@@ -27,9 +27,16 @@
   },
   "dependencies": {
     "@playwright/experimental-ct-core": "1.52",
+    "playwright": "1.52",
     "vite-plugin-twigjs-loader": "^2.0.3"
   },
   "bin": {
     "playwright": "cli.js"
+  },
+  "devDependencies": {
+    "@types/babel__core": "^7.20.2",
+    "@types/babel__helper-plugin-utils": "^7.10.1",
+    "@types/babel__traverse": "^7.20.7",
+    "@types/node": "^22.15.3"
   }
 }

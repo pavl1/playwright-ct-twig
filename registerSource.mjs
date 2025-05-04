@@ -21,12 +21,9 @@
  * @param {Component} component
  */
 
-console.log('registerSource');
-
 function __pwCreateComponent(component) {
-  console.log('create component', component);
-  if (component.__pw_type === 'twig') {
-    const renderTemplate = component.template; // template уже является функцией рендера
+  if (component.__pw_type === 'object-component') {
+    const renderTemplate = component.type; // this is render function
     const renderedTemplate = renderTemplate(component.context || {});
     return { renderedTemplate };
   }
@@ -36,14 +33,12 @@ function __pwCreateComponent(component) {
 const __pwAppKey = Symbol('appKey');
 
 window.playwrightMount = async (component, rootElement) => {
-  console.log('mount', component, rootElement);
   const { renderedTemplate } = __pwCreateComponent(component);
   rootElement.innerHTML = renderedTemplate;
   rootElement[__pwAppKey] = true;
 };
 
 window.playwrightUnmount = async rootElement => {
-    console.log('unmount', rootElement);
   if (!rootElement[__pwAppKey])
     throw new Error('Component was not mounted');
   rootElement.innerHTML = '';
@@ -51,7 +46,6 @@ window.playwrightUnmount = async rootElement => {
 };
 
 window.playwrightUpdate = async (rootElement, component) => {
-  console.log('update', component, rootElement);
   if (!rootElement[__pwAppKey])
     throw new Error('Component was not mounted');
   const { renderedTemplate } = __pwCreateComponent(component);

@@ -2,7 +2,7 @@ const { test, expect, devices, defineConfig: originalDefineConfig } = require('@
 const path = require('path');
 
 const defineConfig = (config, ...configs) => {
-  const c = originalDefineConfig({
+  const mergedConfig = originalDefineConfig({
     ...config,
     '@playwright/test': {
       packageJSON: require.resolve('./package.json'),
@@ -16,9 +16,10 @@ const defineConfig = (config, ...configs) => {
     },
   }, ...configs);
 
-  c['@playwright/test'].babelPlugins = [[require.resolve('./transform')]];
+  // Add babel plugin for transforming Twig templates
+  mergedConfig['@playwright/test'].babelPlugins = [[require.resolve('./transform')]];
 
-  return c;
+  return mergedConfig;
 };
 
 module.exports = { test, expect, devices, defineConfig };
